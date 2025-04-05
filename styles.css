@@ -6,3 +6,24 @@ available in the app when your plugin is enabled.
 If your plugin does not need CSS, delete this file.
 
 */
+
+/* Settings styles */
+.custom-command-container {
+    margin-top: 20px;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 5px;
+    padding: 10px;
+    margin-bottom: 20px;
+    background-color: var(--background-secondary);
+}
+
+.custom-command-container h4 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    color: var(--text-accent);
+}
+
+.custom-command-container hr {
+    margin-top: 10px;
+    margin-bottom: 10px;
+}

@@ -1,94 +1,70 @@
-# Obsidian Sample Plugin
+# Obsidian Transcribe Plugin
 
-This is a sample plugin for Obsidian (https://obsidian.md).
+This plugin allows you to transcribe audio files within your Obsidian vault and process the transcriptions using AI.
 
-This project uses TypeScript to provide type checking and documentation.
-The repo depends on the latest plugin API (obsidian.d.ts) in TypeScript Definition format, which contains TSDoc comments describing what it does.
+## Features
 
-This sample plugin demonstrates some of the basic functionality the plugin API can do.
-- Adds a ribbon icon, which shows a Notice when clicked.
-- Adds a command "Open Sample Modal" which opens a Modal.
-- Adds a plugin setting tab to the settings page.
-- Registers a global click event and output 'click' to the console.
-- Registers a global interval which logs 'setInterval' to the console.
+- Transcribe audio files (mp3) using ElevenLabs speech-to-text API
+- Process transcriptions using Claude AI with custom prompts
+- Create custom commands to process files with different settings
 
-## First time developing plugins?
+## Installation
 
-Quick starting guide for new plugin devs:
+1. Download the plugin from the Obsidian Community Plugins browser
+2. Enable the plugin in Obsidian settings
+3. Configure the plugin with your API keys
 
-- Check if [someone already developed a plugin for what you want](https://obsidian.md/plugins)! There might be an existing plugin similar enough that you can partner up with.
-- Make a copy of this repo as a template with the "Use this template" button (login to GitHub if you don't see it).
-- Clone your repo to a local development folder. For convenience, you can place this folder in your `.obsidian/plugins/your-plugin-name` folder.
-- Install NodeJS, then run `npm i` in the command line under your repo folder.
-- Run `npm run dev` to compile your plugin from `main.ts` to `main.js`.
-- Make changes to `main.ts` (or create new `.ts` files). Those changes should be automatically compiled into `main.js`.
-- Reload Obsidian to load the new version of your plugin.
-- Enable plugin in settings window.
-- For updates to the Obsidian API run `npm update` in the command line under your repo folder.
+## Setup
 
-## Releasing new releases
+1. Get an API key from [ElevenLabs](https://elevenlabs.io/)
+2. Get an API key from [Anthropic (Claude)](https://www.anthropic.com/)
+3. Add these keys to the plugin settings
 
-- Update your `manifest.json` with your new version number, such as `1.0.1`, and the minimum Obsidian version required for your latest release.
-- Update your `versions.json` file with `"new-plugin-version": "minimum-obsidian-version"` so older versions of Obsidian can download an older version of your plugin that's compatible.
-- Create new GitHub release using your new version number as the "Tag version". Use the exact version number, don't include a prefix `v`. See here for an example: https://github.com/obsidianmd/obsidian-sample-plugin/releases
-- Upload the files `manifest.json`, `main.js`, `styles.css` as binary attachments. Note: The manifest.json file must be in two places, first the root path of your repository and also in the release.
-- Publish the release.
+## Usage
 
-> You can simplify the version bump process by running `npm version patch`, `npm version minor` or `npm version major` after updating `minAppVersion` manually in `manifest.json`.
-> The command will bump version in `manifest.json` and `package.json`, and add the entry for the new version to `versions.json`
+### Transcribing Audio Files
 
-## Adding your plugin to the community plugin list
+1. Place your audio files (mp3) in your configured audio folder (default is "_assets/audio")
+2. Run the "Transcribe audio" command from the command palette
+3. The plugin will transcribe all audio files without existing transcriptions
+4. Transcriptions will be saved as markdown files with "-transcribed" suffix in the same folder
 
-- Check the [plugin guidelines](https://docs.obsidian.md/Plugins/Releasing/Plugin+guidelines).
-- Publish an initial version.
-- Make sure you have a `README.md` file in the root of your repo.
-- Make a pull request at https://github.com/obsidianmd/obsidian-releases to add your plugin.
+### Cleaning Up Transcriptions
 
-## How to use
+1. Create a markdown file with your instructions for cleaning up transcriptions (default location: "_assets/custom-prompt.md")
+2. Run the "Clean up the transcription" command from the command palette
+3. The plugin will process all transcribed files without existing formatted versions
+4. Formatted transcriptions will be saved with "-formatted" suffix in the same folder
 
-- Clone this repo.
-- Make sure your NodeJS is at least v16 (`node --version`).
-- `npm i` or `yarn` to install dependencies.
-- `npm run dev` to start compilation in watch mode.
+### Custom Commands
 
-## Manually installing the plugin
+You can create custom commands to process files with different settings:
 
-- Copy over `main.js`, `styles.css`, `manifest.json` to your vault `VaultFolder/.obsidian/plugins/your-plugin-id/`.
+1. Go to the plugin settings
+2. Click "Add Command" button
+3. Configure the command with:
+   - Command name
+   - Folder path
+   - Input file suffix
+   - Output file suffix  
+   - Custom prompt path
+4. The command will appear in the command palette
+5. When run, it will process files with the input suffix that don't have corresponding output files
+6. Processed files will be saved with the output suffix
 
-## Improve code quality with eslint (optional)
-- [ESLint](https://eslint.org/) is a tool that analyzes your code to quickly find problems. You can run ESLint against your plugin to find common bugs and ways to improve your code. 
-- To use eslint with this project, make sure to install eslint from terminal:
-  - `npm install -g eslint`
-- To use eslint to analyze this project use this command:
-  - `eslint main.ts`
-  - eslint will then create a report with suggestions for code improvement by file and line number.
-- If your source code is in a folder, such as `src`, you can use eslint with this command to analyze all files in that folder:
-  - `eslint .\src\`
+## Example Custom Command
 
-## Funding URL
+To turn formatted transcriptions into blog posts:
 
-You can include funding URLs where people who use your plugin can financially support it.
+1. Create a prompt file "_assets/turn-transcription-into-blog-post-prompt.md" with instructions for Claude
+2. Add a custom command with:
+   - Name: "Turn the formatted transcriptions into blog posts"
+   - Folder: "_assets/audio"
+   - Input suffix: "-formatted"
+   - Output suffix: "-post"
+   - Prompt path: "_assets/turn-transcription-into-blog-post-prompt.md"
+3. Run the command to process all formatted transcriptions into blog posts
 
-The simple way is to set the `fundingUrl` field to your link in your `manifest.json` file:
+## License
 
-```json
-{
-    "fundingUrl": "https://buymeacoffee.com"
-}
-```
-
-If you have multiple URLs, you can also do:
-
-```json
-{
-    "fundingUrl": {
-        "Buy Me a Coffee": "https://buymeacoffee.com",
-        "GitHub Sponsor": "https://github.com/sponsors",
-        "Patreon": "https://www.patreon.com/"
-    }
-}
-```
-
-## API Documentation
-
-See https://github.com/obsidianmd/obsidian-api
+This project is licensed under the MIT License - see the LICENSE file for details.
