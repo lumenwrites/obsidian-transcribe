@@ -53,6 +53,24 @@ export default class TranscribePlugin extends Plugin {
 			}
 		});
 
+		// Add "Generate prompt" command for active file
+		this.addCommand({
+			id: 'generate-prompt',
+			name: 'Generate prompt from active file',
+			callback: async () => {
+				await this.generatePrompt();
+			}
+		});
+
+		// Add "Generate prompts for all transcribed files" command
+		this.addCommand({
+			id: 'generate-prompts-batch',
+			name: 'Generate prompts for all transcribed files',
+			callback: async () => {
+				await this.generatePromptsForTranscribedFiles();
+			}
+		});
+
 		// Add custom commands based on settings
 		this.settings.commands.forEach((command, index) => {
 			this.addCommand({
@@ -403,6 +421,133 @@ export default class TranscribePlugin extends Plugin {
 		} catch (error) {
 			console.error('Error in Claude formatting:', error);
 			throw new Error('Failed to format with Claude: ' + (error.message || error));
+		}
+	}
+
+	/**
+	 * Generate a prompt file by combining custom prompt with the active file
+	 */
+	async generatePrompt(): Promise<void> {
+		try {
+			// Get the active file
+			const activeFile = this.app.workspace.getActiveFile();
+			
+			if (!activeFile) {
+				new Notice('No file is currently open.');
+				return;
+			}
+			
+			// Check if custom prompt file exists
+			const promptPath = this.settings.customPromptPath;
+			const promptFile = this.app.vault.getAbstractFileByPath(promptPath);
+			
+			if (!promptFile || !(promptFile instanceof TFile)) {
+				new Notice(`Prompt file "${promptPath}" not found. Please check your settings.`);
+				return;
+			}
+			
+			// Get contents of both files
+			const promptContent = await this.app.vault.read(promptFile);
+			const fileContent = await this.app.vault.read(activeFile);
+			
+			// Combine contents
+			const combinedContent = `${promptContent}\n\n=====\n\n${fileContent}`;
+			
+			// Create new file name
+			const fileDir = activeFile.parent?.path || '';
+			const baseName = activeFile.basename;
+			const newFileName = `${baseName}-prompt.md`;
+			const newFilePath = fileDir ? `${fileDir}/${newFileName}` : newFileName;
+			
+			// Create or update the prompt file
+			const existingFile = this.app.vault.getAbstractFileByPath(newFilePath);
+			
+			if (existingFile && existingFile instanceof TFile) {
+				await this.app.vault.modify(existingFile, combinedContent);
+				new Notice(`Updated existing prompt file: ${newFileName}`);
+			} else {
+				await this.app.vault.create(newFilePath, combinedContent);
+				new Notice(`Generated new prompt file: ${newFileName}`);
+			}
+		} catch (error) {
+			console.error('Error generating prompt:', error);
+			new Notice('Error generating prompt. Check console for details.');
+		}
+	}
+
+	/**
+	 * Generate prompts for all transcribed files in the audio folder
+	 */
+	async generatePromptsForTranscribedFiles(): Promise<void> {
+		try {
+			const folderPath = this.settings.audioFolderPath;
+			const promptPath = this.settings.customPromptPath;
+			
+			// Check if folder exists
+			const folder = this.app.vault.getAbstractFileByPath(folderPath);
+			if (!folder || !(folder instanceof TFolder)) {
+				new Notice(`Folder "${folderPath}" not found. Please check your settings.`);
+				return;
+			}
+			
+			// Check if prompt file exists
+			const promptFile = this.app.vault.getAbstractFileByPath(promptPath);
+			if (!promptFile || !(promptFile instanceof TFile)) {
+				new Notice(`Prompt file "${promptPath}" not found. Please check your settings.`);
+				return;
+			}
+			
+			// Get the prompt content
+			const promptContent = await this.app.vault.read(promptFile);
+			
+			// Get all transcribed files
+			const transcribedFiles = folder.children.filter(file => {
+				if (!(file instanceof TFile) || file.extension !== 'md') return false;
+				return file.basename.endsWith('-transcribed');
+			}) as TFile[];
+			
+			if (transcribedFiles.length === 0) {
+				new Notice('No transcribed files found.');
+				return;
+			}
+			
+			new Notice(`Found ${transcribedFiles.length} transcribed files. Generating prompts...`);
+			
+			// Process each transcribed file
+			let successCount = 0;
+			for (const file of transcribedFiles) {
+				try {
+					// Get the transcription content
+					const fileContent = await this.app.vault.read(file);
+					
+					// Combine contents
+					const combinedContent = `${promptContent}\n=====\n${fileContent}`;
+					
+					// Get base name without "-transcribed"
+					const originalName = file.basename.substring(0, file.basename.length - 12);
+					
+					// Create the prompt file
+					const promptFilePath = `${folderPath}/${originalName}-prompt.md`;
+					
+					// Check if prompt file already exists
+					const existingPromptFile = this.app.vault.getAbstractFileByPath(promptFilePath);
+					
+					if (existingPromptFile && existingPromptFile instanceof TFile) {
+						await this.app.vault.modify(existingPromptFile, combinedContent);
+					} else {
+						await this.app.vault.create(promptFilePath, combinedContent);
+					}
+					successCount++;
+				} catch (error) {
+					console.error(`Error processing ${file.name}:`, error);
+					new Notice(`Failed to generate prompt for ${file.name}. Check console for details.`);
+				}
+			}
+			
+			new Notice(`Generated prompts for ${successCount} out of ${transcribedFiles.length} files.`);
+		} catch (error) {
+			console.error('Error in batch prompt generation:', error);
+			new Notice('Error in batch prompt generation. Check console for details.');
 		}
 	}
 }
