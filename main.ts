@@ -9,8 +9,14 @@ interface TranscribePluginSettings {
 	elevenlabsApiKey: string;
 	claudeApiKey: string;
 	audioFolderPath: string;
-	customPromptPath: string;
+	builtInCommands: BuiltInCommandSettings;
 	commands: TranscriptionCommand[];
+}
+
+interface BuiltInCommandSettings {
+	cleanupPromptPath: string;
+	generatePromptPath: string;
+	copyPromptPath: string;
 }
 
 interface TranscriptionCommand {
@@ -25,7 +31,11 @@ const DEFAULT_SETTINGS: TranscribePluginSettings = {
 	elevenlabsApiKey: '',
 	claudeApiKey: '',
 	audioFolderPath: '_assets/audio',
-	customPromptPath: '_assets/custom-prompt.md',
+	builtInCommands: {
+		cleanupPromptPath: '_assets/llm-prompts/cleanup-transcript.md',
+		generatePromptPath: '_assets/llm-prompts/format-transcript.md',
+		copyPromptPath: '_assets/llm-prompts/format-transcript.md'
+	},
 	commands: []
 }
 
@@ -230,7 +240,7 @@ export default class TranscribePlugin extends Plugin {
 			}
 
 			const folderPath = this.settings.audioFolderPath;
-			const promptPath = this.settings.customPromptPath;
+			const promptPath = this.settings.builtInCommands.cleanupPromptPath;
 			
 			// Check if folder exists
 			const folder = this.app.vault.getAbstractFileByPath(folderPath);
@@ -447,7 +457,7 @@ export default class TranscribePlugin extends Plugin {
 			}
 			
 			// Check if custom prompt file exists
-			const promptPath = this.settings.customPromptPath;
+			const promptPath = this.settings.builtInCommands.generatePromptPath;
 			const promptFile = this.app.vault.getAbstractFileByPath(promptPath);
 			
 			if (!promptFile || !(promptFile instanceof TFile)) {
@@ -490,7 +500,7 @@ export default class TranscribePlugin extends Plugin {
 	async generatePromptsForTranscribedFiles(): Promise<void> {
 		try {
 			const folderPath = this.settings.audioFolderPath;
-			const promptPath = this.settings.customPromptPath;
+			const promptPath = this.settings.builtInCommands.generatePromptPath;
 			
 			// Check if folder exists
 			const folder = this.app.vault.getAbstractFileByPath(folderPath);
@@ -574,7 +584,7 @@ export default class TranscribePlugin extends Plugin {
 			}
 			
 			// Check if custom prompt file exists
-			const promptPath = this.settings.customPromptPath;
+			const promptPath = this.settings.builtInCommands.copyPromptPath;
 			const promptFile = this.app.vault.getAbstractFileByPath(promptPath);
 			
 			if (!promptFile || !(promptFile instanceof TFile)) {
@@ -648,14 +658,39 @@ class TranscribeSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				}));
 
+		// Built-in commands settings section
+		containerEl.createEl('h3', {text: 'Built-in Commands Settings'});
+		
 		new Setting(containerEl)
-			.setName('Custom Prompt Path')
-			.setDesc('Path to the custom prompt file for transcription cleanup')
+			.setName('Clean Up Transcription Prompt Path')
+			.setDesc('Path to the prompt file for the "Clean up the transcription" command')
 			.addText(text => text
-				.setPlaceholder('_assets/custom-prompt.md')
-				.setValue(this.plugin.settings.customPromptPath)
+				.setPlaceholder('_assets/llm-prompts/cleanup-transcript.md')
+				.setValue(this.plugin.settings.builtInCommands.cleanupPromptPath)
 				.onChange(async (value) => {
-					this.plugin.settings.customPromptPath = value;
+					this.plugin.settings.builtInCommands.cleanupPromptPath = value;
+					await this.plugin.saveSettings();
+				}));
+		
+		new Setting(containerEl)
+			.setName('Generate Prompt Path')
+			.setDesc('Path to the prompt file for the "Generate prompt" commands')
+			.addText(text => text
+				.setPlaceholder('_assets/llm-prompts/format-transcript.md')
+				.setValue(this.plugin.settings.builtInCommands.generatePromptPath)
+				.onChange(async (value) => {
+					this.plugin.settings.builtInCommands.generatePromptPath = value;
+					await this.plugin.saveSettings();
+				}));
+				
+		new Setting(containerEl)
+			.setName('Copy Prompt Path')
+			.setDesc('Path to the prompt file for the "Copy prompt" command')
+			.addText(text => text
+				.setPlaceholder('_assets/llm-prompts/format-transcript.md')
+				.setValue(this.plugin.settings.builtInCommands.copyPromptPath)
+				.onChange(async (value) => {
+					this.plugin.settings.builtInCommands.copyPromptPath = value;
 					await this.plugin.saveSettings();
 				}));
 			
@@ -739,7 +774,7 @@ class TranscribeSettingTab extends PluginSettingTab {
 						folderPath: this.plugin.settings.audioFolderPath,
 						inputSuffix: '-transcribed',
 						outputSuffix: '-processed',
-						promptPath: this.plugin.settings.customPromptPath
+						promptPath: '_assets/llm-prompts/custom-prompt.md'
 					});
 					await this.plugin.saveSettings();
 					this.display();
