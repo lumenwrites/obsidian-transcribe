@@ -474,7 +474,7 @@ export default class TranscribePlugin extends Plugin {
 
 			// The URL of your deployed Claude API proxy
 			// const proxyUrl = "https://your-proxy-url.vercel.app/api/claude";
-			const proxyUrl = "http://localhost:3000/api/claude";
+			const proxyUrl = "https://claude-proxy-delta.vercel.app/api/claude";
 
 			let responseText = "";
 			let lastUpdateTime = Date.now();
