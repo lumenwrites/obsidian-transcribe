@@ -255,14 +255,6 @@ export default class TranscribePlugin extends Plugin {
 			return null;
 		}
 
-		// Check if active file has the right suffix
-		if (!activeFile.basename.endsWith(promptSettings.inputSuffix)) {
-			new Notice(
-				`The active file must have the suffix "${promptSettings.inputSuffix}" to use this command.`
-			);
-			return null;
-		}
-
 		// Get prompt and file content
 		const promptFile = this.app.vault.getAbstractFileByPath(
 			promptSettings.promptPath
@@ -279,10 +271,19 @@ export default class TranscribePlugin extends Plugin {
 		const combinedContent = `${promptContent}\n---\n${fileContent}`;
 
 		// Calculate output file path
-		const outputFileName = activeFile.basename.replace(
-			promptSettings.inputSuffix,
-			promptSettings.outputSuffix
-		);
+		let outputFileName: string;
+		
+		// If file already has the input suffix, replace it with output suffix
+		if (activeFile.basename.endsWith(promptSettings.inputSuffix)) {
+			outputFileName = activeFile.basename.replace(
+				promptSettings.inputSuffix,
+				promptSettings.outputSuffix
+			);
+		} else {
+			// Otherwise, just append the output suffix
+			outputFileName = `${activeFile.basename}${promptSettings.outputSuffix}`;
+		}
+		
 		const outputFilePath = `${
 			activeFile.parent?.path || ""
 		}/${outputFileName}.md`;
