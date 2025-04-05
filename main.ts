@@ -11,7 +11,6 @@ interface TranscribePluginSettings {
 
 interface CustomPromptSettings {
 	name: string;
-	folderPath: string;
 	inputSuffix: string;
 	outputSuffix: string;
 	promptPath: string;
@@ -24,7 +23,6 @@ const DEFAULT_SETTINGS: TranscribePluginSettings = {
 	customPrompts: [
 		{
 			name: 'Clean up the transcription',
-			folderPath: '_audio',
 			inputSuffix: '-transcribed',
 			outputSuffix: '-formatted',
 			promptPath: '_assets/llm-prompts/cleanup-transcript.md'
@@ -227,15 +225,6 @@ class TranscribeSettingTab extends PluginSettingTab {
 					}));
 					
 			new Setting(commandSettingContainer)
-				.setName('Folder Path')
-				.addText(text => text
-					.setValue(prompt.folderPath)
-					.onChange(async (value) => {
-						this.plugin.settings.customPrompts[index].folderPath = value;
-						await this.plugin.saveSettings();
-					}));
-					
-			new Setting(commandSettingContainer)
 				.setName('Input Suffix')
 				.addText(text => text
 					.setValue(prompt.inputSuffix)
@@ -286,7 +275,6 @@ class TranscribeSettingTab extends PluginSettingTab {
 				.onClick(async () => {
 					this.plugin.settings.customPrompts.push({
 						name: 'New Custom Prompt',
-						folderPath: this.plugin.settings.audioFolderPath,
 						inputSuffix: '-transcribed',
 						outputSuffix: '-processed',
 						promptPath: '_assets/llm-prompts/custom-prompt.md'
