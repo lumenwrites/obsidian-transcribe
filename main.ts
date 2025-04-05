@@ -4,12 +4,32 @@ import FormData from 'form-data';
 
 interface TranscribePluginSettings {
 	elevenlabsApiKey: string;
+	claudeApiKey: string;
 	audioFolderPath: string;
+	customPrompts: CustomPromptSettings[];
+}
+
+interface CustomPromptSettings {
+	name: string;
+	folderPath: string;
+	inputSuffix: string;
+	outputSuffix: string;
+	promptPath: string;
 }
 
 const DEFAULT_SETTINGS: TranscribePluginSettings = {
 	elevenlabsApiKey: '',
-	audioFolderPath: '_audio'
+	claudeApiKey: '',
+	audioFolderPath: '_audio',
+	customPrompts: [
+		{
+			name: 'Clean up the transcription',
+			folderPath: '_audio',
+			inputSuffix: '-transcribed',
+			outputSuffix: '-formatted',
+			promptPath: '_assets/llm-prompts/cleanup-transcript.md'
+		},
+	]
 }
 
 export default class TranscribePlugin extends Plugin {
@@ -29,10 +49,6 @@ export default class TranscribePlugin extends Plugin {
 
 		// Add settings tab
 		this.addSettingTab(new TranscribeSettingTab(this.app, this));
-	}
-
-	onunload() {
-		// Nothing specific to clean up
 	}
 
 	async loadSettings() {
@@ -191,6 +207,92 @@ class TranscribeSettingTab extends PluginSettingTab {
 				.onChange(async (value) => {
 					this.plugin.settings.audioFolderPath = value;
 					await this.plugin.saveSettings();
+				}));
+			
+		// Custom prompts section
+		containerEl.createEl('h3', {text: 'Prompts'});
+		
+		// Display commands
+		this.plugin.settings.customPrompts.forEach((prompt, index) => {
+			const commandSettingContainer = containerEl.createDiv();
+			commandSettingContainer.addClass('custom-command-container');
+
+			new Setting(commandSettingContainer)
+				.setName('Command Name')
+				.addText(text => text
+					.setValue(prompt.name)
+					.onChange(async (value) => {
+						this.plugin.settings.customPrompts[index].name = value;
+						await this.plugin.saveSettings();
+					}));
+					
+			new Setting(commandSettingContainer)
+				.setName('Folder Path')
+				.addText(text => text
+					.setValue(prompt.folderPath)
+					.onChange(async (value) => {
+						this.plugin.settings.customPrompts[index].folderPath = value;
+						await this.plugin.saveSettings();
+					}));
+					
+			new Setting(commandSettingContainer)
+				.setName('Input Suffix')
+				.addText(text => text
+					.setValue(prompt.inputSuffix)
+					.onChange(async (value) => {
+						this.plugin.settings.customPrompts[index].inputSuffix = value;
+						await this.plugin.saveSettings();
+					}));
+					
+			new Setting(commandSettingContainer)
+				.setName('Output Suffix')
+				.addText(text => text
+					.setValue(prompt.outputSuffix)
+					.onChange(async (value) => {
+						this.plugin.settings.customPrompts[index].outputSuffix = value;
+						await this.plugin.saveSettings();
+					}));
+					
+			new Setting(commandSettingContainer)
+				.setName('Custom Prompt Path')
+				.addText(text => text
+					.setValue(prompt.promptPath)
+					.onChange(async (value) => {
+						this.plugin.settings.customPrompts[index].promptPath = value;
+						await this.plugin.saveSettings();
+					}));
+					
+			// Delete button (not for default commands)
+			if (index >= 4) {
+				new Setting(commandSettingContainer)
+					.addButton(button => button
+						.setButtonText('Delete Command')
+						.onClick(async () => {
+							this.plugin.settings.customPrompts.splice(index, 1);
+							await this.plugin.saveSettings();
+							this.display();
+						}));
+			}
+					
+			commandSettingContainer.createEl('hr');
+		});
+		
+		// Add new custom prompt button
+		new Setting(containerEl)
+			.setName('Add New Custom Prompt')
+			.setDesc('Add a new custom prompt for processing transcriptions')
+			.addButton(button => button
+				.setButtonText('Add Prompt')
+				.onClick(async () => {
+					this.plugin.settings.customPrompts.push({
+						name: 'New Custom Prompt',
+						folderPath: this.plugin.settings.audioFolderPath,
+						inputSuffix: '-transcribed',
+						outputSuffix: '-processed',
+						promptPath: '_assets/llm-prompts/custom-prompt.md'
+					});
+					await this.plugin.saveSettings();
+					this.display();
 				}));
 	}
 }
