@@ -62,6 +62,15 @@ export default class TranscribePlugin extends Plugin {
 			}
 		});
 
+		// Add "Copy prompt" command for active file
+		this.addCommand({
+			id: 'copy-prompt',
+			name: 'Copy prompt from active file to clipboard',
+			callback: async () => {
+				await this.copyPromptToClipboard();
+			}
+		});
+
 		// Add "Generate prompts for all transcribed files" command
 		this.addCommand({
 			id: 'generate-prompts-batch',
@@ -521,7 +530,7 @@ export default class TranscribePlugin extends Plugin {
 					const fileContent = await this.app.vault.read(file);
 					
 					// Combine contents
-					const combinedContent = `${promptContent}\n=====\n${fileContent}`;
+					const combinedContent = `${promptContent}\n\n=====\n\n${fileContent}`;
 					
 					// Get base name without "-transcribed"
 					const originalName = file.basename.substring(0, file.basename.length - 12);
@@ -548,6 +557,45 @@ export default class TranscribePlugin extends Plugin {
 		} catch (error) {
 			console.error('Error in batch prompt generation:', error);
 			new Notice('Error in batch prompt generation. Check console for details.');
+		}
+	}
+
+	/**
+	 * Copy a prompt for the active file to the clipboard instead of creating a file
+	 */
+	async copyPromptToClipboard(): Promise<void> {
+		try {
+			// Get the active file
+			const activeFile = this.app.workspace.getActiveFile();
+			
+			if (!activeFile) {
+				new Notice('No file is currently open.');
+				return;
+			}
+			
+			// Check if custom prompt file exists
+			const promptPath = this.settings.customPromptPath;
+			const promptFile = this.app.vault.getAbstractFileByPath(promptPath);
+			
+			if (!promptFile || !(promptFile instanceof TFile)) {
+				new Notice(`Prompt file "${promptPath}" not found. Please check your settings.`);
+				return;
+			}
+			
+			// Get contents of both files
+			const promptContent = await this.app.vault.read(promptFile);
+			const fileContent = await this.app.vault.read(activeFile);
+			
+			// Combine contents
+			const combinedContent = `${promptContent}\n\n=====\n\n${fileContent}`;
+			
+			// Copy to clipboard
+			await navigator.clipboard.writeText(combinedContent);
+			
+			new Notice(`Prompt copied to clipboard from: ${activeFile.name}`);
+		} catch (error) {
+			console.error('Error copying prompt to clipboard:', error);
+			new Notice('Error copying prompt to clipboard. Check console for details.');
 		}
 	}
 }
